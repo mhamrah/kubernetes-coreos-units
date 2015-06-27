@@ -1,8 +1,7 @@
 # Fleet Unit Files for Kubernetes on CoreOS
 
-These are a collection of fleet unit files that
-can be deployed to an existing CoreOS cluster.
-They still require a minimum amount of configuration. They come from snippets scattered throughout the
+These are a collection of fleet unit files that can be deployed to 
+an existing CoreOS cluster. They still require a minimum amount of configuration. They come from snippets scattered throughout the
 kubernetes project as well as work from Kelsey Hightower.
 
 _Why Fleet instead of Cloud-Config?_
@@ -13,6 +12,18 @@ of an entire CoreOS cluster, especially on AWS. Using Fleet for deploying Kubern
 lets you focus on building a CoreOS cluster first (or using an existing one) and then 
 deploy Kubernetes on top of it. It also lets you easily mess around with Kubernetes 
 without having to deal with underlying nodes.
+
+## Assumptions
+
+* Assumes you have a running CoreOS cluster with etcd 2.0+. 
+* Assumes you a ```setup-network-environment.service``` unit running
+  on all nodes set via cloud-config. This can be copied from the Kubernetes 
+  repository.
+* Assumes all nodes running ```kubelet``` and ```proxy``` have an ```/etc/leader```
+  environment file with a ````LEADER_ENDPOINT``` set. The ```LEADER_ENDPOINT``` can
+  be a specific node running the api service or preferably some load balanced endpoint
+  to a set of leader nodes running the API. (Because of the transient nature of CoreOS
+  nodes, minimizing IP address is a plus).
 
 ## Template Files
 
