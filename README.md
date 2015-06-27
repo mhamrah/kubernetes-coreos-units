@@ -1,17 +1,23 @@
 # Fleet Unit Files for Kubernetes on CoreOS
 
-These are a collection of fleet unit files that can be deployed to 
-an existing CoreOS cluster. They still require a minimum amount of configuration. They come from snippets scattered throughout the
-kubernetes project as well as work from Kelsey Hightower.
+These are a collection of fleet unit files that can be deployed to an existing CoreOS cluster.
+They still require a minimum amount of configuration. They come from snippets 
+scattered throughout the kubernetes project as well as work from Kelsey Hightower.
 
-_Why Fleet instead of Cloud-Config?_
+*_Why Fleet instead of Cloud-Config?_*
 
 Most of the Kubernetes examples have unit files set within the cloud-config section of 
 CoreOS. This doesn't work well in practice. It's difficult to update the cloud-config 
-of an entire CoreOS cluster, especially on AWS. Using Fleet for deploying Kubernetes 
-lets you focus on building a CoreOS cluster first (or using an existing one) and then 
-deploy Kubernetes on top of it. It also lets you easily mess around with Kubernetes 
-without having to deal with underlying nodes.
+of an entire CoreOS cluster, especially where cloud-drive is not available (i.e AWS). 
+Using Fleet for deploying Kubernetes  lets you focus on building a CoreOS cluster first 
+(or using an existing one) and then  deploy Kubernetes on top of it. It also lets you 
+easily mess around with Kubernetes without having to deal with underlying nodes.
+
+On a side note, if you just want to get up and running to experiment with Kubernetes,
+there are a variety of one-click solutions to launch a Kubernetes cluster. For people
+experimenting with complex topologies, where you want a variety of heterogenous nodes,
+manually deploying Kubernetes on top of an existing CoreOS cluster makes sense. Thus
+these unit files.
 
 ## Assumptions
 
@@ -27,7 +33,8 @@ without having to deal with underlying nodes.
 
 ## Template Files
 
-Each Kubernetes service is broken out into its own unit file. Each unit file 
+Each Kubernetes service is broken out into its own unit file, prefixed with ```kube-``` to
+make grouping in Fleet easier. Each unit file 
 downloads its respective executable in ```ExecStartPre``` and executes it via
 ```ExecStart```. There are a few things you'll want to configure in these 
 unit files before launching.
@@ -50,7 +57,9 @@ to specific nodes.
 I was thrown for a loop with service-cluster-ip-range. This is different from
 your Flannel network. It is used by Kubernetes so service objects you specify
 can be routed alongside your pods. The kube-proxy service will dynamically configure
-your host's routing tables so services are accessible.
+your host's routing tables so services are accessible. I opted for the 172.22/16 private
+address space as 10.100/16 may already be used if you work in a large organization.
+If you have no idea what [10.100/16 or 172.22/16 means, I wrote a quick post on CIDR notation.](http://blog.michaelhamrah.com/2015/05/networking-basics-understanding-cidr-notation-and-subnets-whats-up-with-16-and-24/)
 
 ## kube-controller-manager
 
