@@ -1,0 +1,19 @@
+[Unit]
+Description=Kubernetes Proxy
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=setup-network-environment.service
+After=setup-network-environment.service
+
+[Service]
+EnvironmentFile=/etc/leader
+ExecStartPre=-/usr/bin/rm /opt/bin/kube-proxy
+ExecStartPre=/usr/bin/curl -L -o /opt/bin/kube-proxy -z /opt/bin/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v0.19.0/bin/linux/amd64/kube-proxy
+ExecStartPre=/usr/bin/chmod +x /opt/bin/kube-proxy
+ExecStart=/opt/bin/kube-proxy \
+  --master=http://${LEADER_ENDPOINT}:9090 \
+  --logtostderr=true
+Restart=always
+RestartSec=10
+
+[X-Fleet]
+Global=true
