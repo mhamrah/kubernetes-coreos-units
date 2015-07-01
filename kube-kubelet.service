@@ -1,11 +1,9 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=setup-network-environment.service
-After=setup-network-environment.service
 
 [Service]
-EnvironmentFile=/etc/network-environment
+EnvironmentFile=/etc/environment
 EnvironmentFile=/etc/leader
 ExecStartPre=-/usr/bin/rm /opt/bin/kubelet
 ExecStartPre=/usr/bin/curl -L -o /opt/bin/kubelet -z /opt/bin/kubelet https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kubelet
@@ -13,7 +11,7 @@ ExecStartPre=/usr/bin/chmod +x /opt/bin/kubelet
 ExecStart=/opt/bin/kubelet \
   --address=0.0.0.0 \
   --port=10250 \
-  --hostname_override=${DEFAULT_IPV4} \
+  --hostname_override=${COREOS_PRIVATE_IPV4} \
   --api_servers=http://${LEADER_ENDPOINT}:9090 \
   --allow_privileged=true \
   --logtostderr=true \
