@@ -5,13 +5,15 @@ Requires=kube-apiserver.service
 After=kube-apiserver.service
 
 [Service]
-ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-controller-manager https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kube-controller-manager
+EnvironmentFile=/etc/kube-config.env
+ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-controller-manager https://storage.googleapis.com/kubernetes-release/release/v0.20.2/bin/linux/amd64/kube-controller-manager
 ExecStart=/opt/bin/kube-controller-manager \
-  --master=127.0.0.1:9090 \
-  --logtostderr=true
+  --v=3 \
+  --logtostderr=true \
+  --service_account_private_key_file=/opt/share/kube/kube-serviceaccount.key \
+  --master=127.0.0.1:${KUBE_MASTER_PORT}
 Restart=always
 RestartSec=10
 
 [X-Fleet]
 MachineOf=kube-apiserver.service
-

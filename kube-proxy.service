@@ -5,11 +5,12 @@ Requires=kube-apiserver.service
 After=kube-apiserver.service
 
 [Service]
-EnvironmentFile=/etc/leader
-ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kube-proxy
+EnvironmentFile=/etc/kube-config.env
+ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v0.20.2/bin/linux/amd64/kube-proxy
 ExecStart=/opt/bin/kube-proxy \
-  --master=http://${LEADER_ENDPOINT}:9090 \
-  --logtostderr=true
+  --v=3 \
+  --logtostderr=true \
+  --master=${KUBE_MASTER_URLS}
 Restart=always
 RestartSec=10
 

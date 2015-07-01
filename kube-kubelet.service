@@ -6,17 +6,22 @@ After=kube-apiserver.service
 
 [Service]
 EnvironmentFile=/etc/environment
-EnvironmentFile=/etc/leader
-ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kubelet https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kubelet
+EnvironmentFile=/etc/kube-config.env
+ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kubelet https://storage.googleapis.com/kubernetes-release/release/v0.20.2/bin/linux/amd64/kubelet
 ExecStart=/opt/bin/kubelet \
-  --address=0.0.0.0 \
-  --port=10250 \
-  --hostname_override=${COREOS_PRIVATE_IPV4} \
-  --api_servers=http://${LEADER_ENDPOINT}:9090 \
-  --allow_privileged=true \
+  --v=3 \
   --logtostderr=true \
+  --address=0.0.0.0 \
+  --port=${KUBE_KUBELET_PORT} \
+  --api_servers=${KUBE_MASTER_URLS} \
+  --allow_privileged=true \
+  --container_runtime=docker \
+  --hostname_override=${COREOS_PRIVATE_IPV4} \
+  --cluster_dns=${KUBE_CLUSTER_NAMESERVER} \
+  --cluster_domain=${KUBE_CLUSTER_DOMAIN} \
   --healthz_bind_address=0.0.0.0 \
-  --healthz_port=10248
+  --healthz_port=${KUBE_HEALTHZ_PORT} \
+  --cadvisor_port=${KUBE_CADVISOR_PORT}
 Restart=always
 RestartSec=10
 
