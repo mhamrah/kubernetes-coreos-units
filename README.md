@@ -44,6 +44,24 @@ The `KUBE_MASTER_URLS` can be multiple, comma-separated URLs (beginning with
   endpoint of a set of master nodes. (Because of the transient nature of CoreOS
   nodes, minimizing hardcoded IP addresses is a plus.)
 
+Do not confuse `service-cluster-ip-range` (`KUBE_SERVICE_RANGE` in
+  `kube-config.env`) with your Flannel network segment! It **must** not be the
+  same! The Flannel network segment is used by Kubernetes to give each of your
+  PODs an own IP address and allow routing between them.
+  `service-cluster-ip-range` on the other hand is used as an allocation pool
+  for the Services you create.
+
+Routing for both is setup dynamically by the Kube Proxy (using the information
+  stored by Flannel and Kubernetes in your etcd cluster) using the host's
+  routing tables and/or iptables NAT chain.
+
+Both can point to arbitrary IP ranges that must not overlap. They should also
+  not overlap with the IP range of your physical hosts! In the examples below
+  we use `192.168.10.0/24` for the physical hosts, `10.1.1.0/24` for the
+  Kubernetes services, while Flannel is setup to use `10.0.0.0/16`.
+
+If you have no idea what [10.100.0.0/16 or 172.22.0.0/16 means, I wrote a quick post on CIDR notation](http://blog.michaelhamrah.com/2015/05/networking-basics-understanding-cidr-notation-and-subnets-whats-up-with-16-and-24/).
+
 You can deploy this file using cloud-config:
 
 ```yaml
@@ -125,13 +143,6 @@ to specific nodes.
 * Specified as a Global unit running on ```MachineMetadata=k8srole=master```
 * Assumes Etcd2 is running on same node
 * Binds to all addresses
-
-I was thrown for a loop with service-cluster-ip-range. This is different from
-your Flannel network. It is used by Kubernetes so service objects you specify
-can be routed alongside your pods. The kube-proxy service will dynamically configure
-your host's routing tables so services are accessible. I opted for the 172.22/16 private
-address space as 10.100/16 may already be used if you work in a large organization.
-If you have no idea what [10.100/16 or 172.22/16 means, I wrote a quick post on CIDR notation.](http://blog.michaelhamrah.com/2015/05/networking-basics-understanding-cidr-notation-and-subnets-whats-up-with-16-and-24/)
 
 ## kube-controller-manager
 
