@@ -22,14 +22,88 @@ these unit files.
 ## Assumptions
 
 * Assumes you have a running CoreOS cluster with etcd 2.0+. 
-* Assumes you a ```setup-network-environment.service``` unit running
-  on all nodes set via cloud-config. This can be copied from the Kubernetes 
-  repository.
-* Assumes all nodes running ```kubelet``` and ```proxy``` have an ```/etc/leader```
-  environment file with a ````LEADER_ENDPOINT``` set. The ```LEADER_ENDPOINT``` can
-  be a specific node running the api service or preferably some load balanced endpoint
-  to a set of leader nodes running the API. (Because of the transient nature of CoreOS
-  nodes, minimizing IP address is a plus).
+* Your nodes define `COREOS_PRIVATE_IPV4` in `/etc/environment`. CoreOS should
+  do this automatically upon startup.
+* Your nodes have a file `/etc/kube-config.env` deployed, which contains the
+  expected network configuration. See below for an example.
+* Your nodes have a binary `/opt/bin/curl-update-binary` deployed, which
+  downloads a file from an URL.
+
+### `kube-config.env`
+
+This defines the network settings for your Kubernetes cluster:
+
+* Where will the master run (and on which port)?
+* On which port will Kubelets (and HealthZ/cAdvisor) run?
+* Which IP range is to be used by services?
+* Where does the [cluster nameserver] run and which domain does it serve?
+
+The `KUBE_MASTER_URLS` can be multiple, comma-separated URLs (beginning with
+  http://, **not** ending with a slash). This means you can point it to a
+  specific node running the apiserver or preferably to some load balanced
+  endpoint of a set of master nodes. (Because of the transient nature of CoreOS
+  nodes, minimizing hardcoded IP addresses is a plus.)
+
+You can deploy this file using cloud-config:
+
+```yaml
+write-files:
+  - path: /etc/kube-config.env
+    permissions: '0644'
+    content: |
+      …
+```
+
+[cluster nameserver]: https://github.com/GoogleCloudPlatform/kubernetes/tree/master/cluster/addons/dns
+
+#### Example:
+
+```sh
+KUBE_MASTER_URLS=http://192.168.10.24:8080
+KUBE_MASTER_PORT=8080
+KUBE_KUBELET_PORT=10250
+KUBE_HEALTHZ_PORT=10248
+KUBE_CADVISOR_PORT=4194
+KUBE_SERVICE_RANGE=10.1.1.0/24
+KUBE_CLUSTER_NAMESERVER=10.1.1.10
+KUBE_CLUSTER_DOMAIN=cluster.local
+```
+
+### `curl-update-binary`
+
+The purpose of this file is to download a file from a given URL, updating an
+  existing file if the remote one is newer.
+
+You can deploy this file using cloud-config:
+
+```yaml
+write-files:
+  - path: /opt/bin/curl-update-binary
+    permissions: '0755'
+    content: |
+      …
+```
+
+#### Example:
+
+```bash
+#!/bin/bash
+set -e
+file="$1" ; shift
+[[ "${file}" ]]
+url="$1" ; shift
+[[ "${url}" ]]
+dir="$(dirname "${file}")"
+[ -d "${dir}" ] || mkdir -p "${dir}"
+[ -s "${file}" ] || rm -f "${file}"
+/usr/bin/curl --location --remote-time --time-cond "${file}" --output "${file}".new "${url}"
+if [ -s "${file}".new ] ; then
+  mv "${file}".new "${file}"
+else
+  rm "${file}".new
+fi
+chmod +x "${file}"
+```
 
 ## Template Files
 
@@ -48,11 +122,9 @@ to specific nodes.
 ### kube-apiserver
 
 * Runs the Kubernetes API. 
-* Specified as a Global unit running on ```MachineMetadata=role=leader```
+* Specified as a Global unit running on ```MachineMetadata=k8srole=master```
 * Assumes Etcd2 is running on same node
-* Uses port 9090
 * Binds to all addresses
-* Sets service-cluster-ip-range to 172.22.0.0/16. 
 
 I was thrown for a loop with service-cluster-ip-range. This is different from
 your Flannel network. It is used by Kubernetes so service objects you specify
@@ -65,32 +137,25 @@ If you have no idea what [10.100/16 or 172.22/16 means, I wrote a quick post on 
 
 * Runs the Controller Manager service
 * Runs as a single instance with ```MachineOf=kube-apiserver.service```
-* Assumes kube-apiserver is running on the same node on port 9090
+* Assumes kube-apiserver is running on the same node
 
 ## kube-scheduler
 
 * Runs the Scheduler service
 * Runs as a single instance with ```MachineOf=kube-apiserver.service```
-* Assumes kube-apiserver is running on the same node on port 9090
+* Assumes kube-apiserver is running on the same node
 
 ## kube-kubelet
 
 The kube-kubelet service assumes its not running on a node with
 an api server (as the api server is a "core" service while most
-pods will be generic worker nodes). It assumes there is an
-environment file at ```/etc/leader``` with a ```LEADER_ENDPOINT```
-environment variable set. You can write to ```/etc/leader``` in
-your cloud-config when you bring up a node.
+pods will be generic worker nodes).
 
-* Runs the kubelet service
-* Runs as a global unit (no restrictions, you may want to change this)
-* Assumes there is a DEFAULT_IPV4 environment variable, set from
-  a ```setup-network-environment.service``` unit from CoreOS's
-  cloud-config.
+* Runs the Kubelet service
+* Runs as a global unit with `MachineMetadata=k8srole=node`
 
 ## kube-proxy
 
-* Like kubelet, assumes the presence of an ```/etc/leader``` environment
-  file with a ```LEADER_ENDPOINT``` set.
-* Runs as a global unit (you may want to change this)
+* Runs the Kube Proxy service on top of Flannel
+* Runs as a global unit with `MachineMetadata=k8srole=node`
 
