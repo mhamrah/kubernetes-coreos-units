@@ -114,7 +114,7 @@ url="$1" ; shift
 dir="$(dirname "${file}")"
 [ -d "${dir}" ] || mkdir -p "${dir}"
 [ -s "${file}" ] || rm -f "${file}"
-/usr/bin/curl --location --remote-time --time-cond "${file}" --output "${file}".new "${url}"
+/usr/bin/curl --fail --location --remote-time --time-cond "${file}" --output "${file}".new "${url}"
 if [ -s "${file}".new ] ; then
   mv "${file}".new "${file}"
 else
