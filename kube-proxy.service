@@ -13,3 +13,4 @@ RestartSec=10
 
 [X-Fleet]
 Global=true
+MachineMetadata=k8srole=node
