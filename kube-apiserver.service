@@ -1,26 +1,27 @@
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=etcd2.service setup-network-environment.service
-After=etcd2.service setup-network-environment.service
+Requires=etcd2.service generate-serviceaccount-key.service
+After=etcd2.service generate-serviceaccount-key.service
 
 [Service]
-EnvironmentFile=/etc/network-environment
-ExecStartPre=-/usr/bin/mkdir -p /opt/bin
-ExecStartPre=-/usr/bin/rm /opt/bin/kube-apiserver
-ExecStartPre=/usr/bin/curl -L -o /opt/bin/kube-apiserver -z /opt/bin/kube-apiserver https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kube-apiserver
-ExecStartPre=/usr/bin/chmod +x /opt/bin/kube-apiserver
+EnvironmentFile=/etc/kube-config.env
+ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-apiserver https://storage.googleapis.com/kubernetes-release/release/v0.20.2/bin/linux/amd64/kube-apiserver
 ExecStart=/opt/bin/kube-apiserver \
+  --v=3 \
+  --logtostderr=true \
   --allow_privileged=true \
-  --insecure_bind_address=0.0.0.0 \
-  --insecure_port=9090 \
   --kubelet_https=true \
-  --service-cluster-ip-range=172.22.0.0/16 \
-  --etcd_servers=http://127.0.0.1:4001 \
-  --logtostderr=true
+  --service_account_lookup=false \
+  --service_account_key_file=/opt/share/kube/kube-serviceaccount.key \
+  --admission_control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
+  --address=0.0.0.0 \
+  --port=${KUBE_MASTER_PORT} \
+  --etcd_servers=http://127.0.0.1:2379 \
+  --service-cluster-ip-range=${KUBE_SERVICE_RANGE}
 Restart=always
 RestartSec=10
 
 [X-Fleet]
 Global=true
-MachineMetadata=role=leader
+MachineMetadata=k8srole=master

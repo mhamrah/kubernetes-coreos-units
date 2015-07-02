@@ -5,14 +5,14 @@ Requires=kube-apiserver.service
 After=kube-apiserver.service
 
 [Service]
-ExecStartPre=-/usr/bin/mkdir -p /opt/bin
-ExecStartPre=-/usr/bin/rm /opt/bin/kube-scheduler
-ExecStartPre=/usr/bin/curl -L -o /opt/bin/kube-scheduler -z /opt/bin/kube-scheduler https://storage.googleapis.com/kubernetes-release/release/v0.19.3/bin/linux/amd64/kube-scheduler
-ExecStartPre=/usr/bin/chmod +x /opt/bin/kube-scheduler
-ExecStart=/opt/bin/kube-scheduler --master=http://127.0.0.1:9090
+EnvironmentFile=/etc/kube-config.env
+ExecStartPre=/opt/bin/curl-update-binary /opt/bin/kube-scheduler https://storage.googleapis.com/kubernetes-release/release/v0.20.2/bin/linux/amd64/kube-scheduler
+ExecStart=/opt/bin/kube-scheduler \
+  --v=3 \
+  --logtostderr=true \
+  --master=http://127.0.0.1:${KUBE_MASTER_PORT}
 Restart=always
 RestartSec=10
 
 [X-Fleet]
 MachineOf=kube-apiserver.service
-
