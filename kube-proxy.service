@@ -1,6 +1,8 @@
 [Unit]
 Description=Kubernetes Proxy
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=kube-apiserver.service
+After=kube-apiserver.service
 
 [Service]
 EnvironmentFile=/etc/leader
